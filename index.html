@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>油镜 · 全国油价实时看板</title>
+<meta name="description" content="覆盖全国 31 个省级行政区、全部价区的成品油零售价看板。实时查看 92 / 95 / 98 号汽油与 0 号柴油价格、涨跌与地区排行。">
+<meta name="theme-color" content="#080a0a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23ffb224'/%3E%3Cpath d='M16 6c3 4 5.5 6.6 5.5 10a5.5 5.5 0 1 1-11 0C10.5 12.6 13 10 16 6Z' fill='%23241706'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap head-inner">
+    <a class="brand" href="#" aria-label="油镜首页">
+      <span class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2.6c3.4 4.1 6.4 7.4 6.4 11.1a6.4 6.4 0 1 1-12.8 0C5.6 10 8.6 6.7 12 2.6Z" fill="currentColor"/>
+          <path d="M9.2 14.2a2.9 2.9 0 0 0 2.9 2.9" stroke="#ffb224" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="brand-text">油镜<small>OILSCOPE</small></span>
+    </a>
+
+    <nav class="head-nav" aria-label="页面导航">
+      <a href="#map">全国地图</a>
+      <a href="#list">地区总表</a>
+      <a href="#calc">油费计算</a>
+    </nav>
+
+    <div class="head-right">
+      <span class="live-pill"><i class="live-dot"></i><span id="headDate">正在载入数据</span></span>
+      <button class="btn" id="refreshBtn" type="button" title="从数据源重新获取当前地区油价">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 11a8 8 0 1 0-2.3 5.6"/><path d="M20 4v7h-7"/>
+        </svg>
+        <span>刷新油价</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="wrap hero">
+    <div class="hero-copy">
+      <span class="eyebrow">National Fuel Price Index</span>
+      <h1>今天油价，<br><em>你那里多少？</em></h1>
+      <p>覆盖全国 31 个省级行政区与全部价区，随成品油调价窗口同步。选一个地区，立刻看到 92 / 95 / 98 号汽油与柴油的挂牌价。</p>
+
+      <div class="region-pick">
+        <button class="region-trigger" id="regionTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="regionPop">
+          <span class="region-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/>
+            </svg>
+          </span>
+          <span class="region-now">
+            <small>当前地区</small>
+            <strong id="regionLabel">载入中…</strong>
+          </span>
+          <span class="chev">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </button>
+
+        <div class="region-pop" id="regionPop" hidden>
+          <input class="region-search" id="regionSearch" type="text" placeholder="搜索省份，如 广东 / 新疆" autocomplete="off" aria-label="搜索省份">
+          <div class="region-list" id="regionList" role="listbox" aria-label="选择省份"></div>
+        </div>
+      </div>
+
+      <div class="quick" id="quickChips">
+        <span>常看</span>
+        <button type="button" data-prov="北京">北京</button>
+        <button type="button" data-prov="上海">上海</button>
+        <button type="button" data-prov="广东">广东</button>
+        <button type="button" data-prov="四川">四川</button>
+        <button type="button" data-prov="新疆">新疆</button>
+        <button type="button" data-prov="西藏">西藏</button>
+      </div>
+    </div>
+
+    <aside class="ticket" id="ticket" aria-label="当前地区油价">
+      <div class="ticket-head">
+        <div>
+          <span class="ticket-kicker" id="ticketKicker">RETAIL PRICE / 零售挂牌价</span>
+          <h2 id="ticketProvince">—</h2>
+        </div>
+        <button class="ticket-zone" id="ticketZone" type="button" title="部分省份分价区，点击切换">一价区</button>
+      </div>
+
+      <div class="ticket-price">
+        <span class="currency">¥</span>
+        <span class="num" id="ticketPrice">—</span>
+        <span class="unit">元/升</span>
+      </div>
+
+      <div class="ticket-meta">
+        <span id="ticketFuel">92 号汽油</span>
+        <span class="delta flat" id="ticketDelta">持平</span>
+      </div>
+      <p class="ticket-area" id="ticketArea" hidden></p>
+
+      <div class="ticket-grid" id="ticketGrid" role="group" aria-label="切换油品"></div>
+      <div class="ticket-extra" id="ticketExtra"></div>
+
+      <div class="ticket-cut"></div>
+      <div class="ticket-foot">
+        <div>加满 50L 约 <strong id="ticketFill">¥—</strong></div>
+        <div class="ticket-code" id="ticketCode">NO. —<br>31 PROVINCES</div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- Stats -->
+  <section class="wrap stats" aria-label="全国概览">
+    <div class="stat">
+      <div class="label"><i></i>92# 全国均价</div>
+      <div class="value"><span class="num" id="statAvg">—</span><small>元/升</small></div>
+      <div class="sub" id="statAvgSub">31 省算术平均</div>
+    </div>
+    <div class="stat">
+      <div class="label"><i></i>价格最高</div>
+      <div class="value"><span class="stat-prov" id="statHighProv">—</span><span class="num" id="statHigh">—</span></div>
+      <div class="sub" id="statHighSub">&nbsp;</div>
+    </div>
+    <div class="stat">
+      <div class="label"><i></i>价格最低</div>
+      <div class="value"><span class="stat-prov" id="statLowProv">—</span><span class="num" id="statLow">—</span></div>
+      <div class="sub" id="statLowSub">&nbsp;</div>
+    </div>
+    <div class="stat">
+      <div class="label"><i></i>最大价差</div>
+      <div class="value"><span class="num" id="statSpread">—</span><small>元/升</small></div>
+      <div class="sub" id="statSpreadSub">加满 50L 的差距</div>
+    </div>
+  </section>
+
+  <!-- Map -->
+  <section class="section wrap" id="map">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">National Overview</span>
+        <h2>全国价格地形</h2>
+        <p class="note">青绿越深越便宜，琥珀越亮越贵；颜色以全国均价为基准。点击任一省份，右上角油票会切换到该地区。部分省份按价区执行不同价格。</p>
+      </div>
+      <div class="fuel-switch" id="mapFuel" role="group" aria-label="地图油品">
+        <button type="button" data-fuel="92" aria-pressed="true">92#</button>
+        <button type="button" data-fuel="95" aria-pressed="false">95#</button>
+        <button type="button" data-fuel="98" aria-pressed="false">98#</button>
+        <button type="button" data-fuel="0" aria-pressed="false">0#柴油</button>
+      </div>
+    </div>
+
+    <div class="map-layout">
+      <div class="map-card">
+        <div class="map-scroll">
+          <div class="china-map" id="chinaMap" role="group" aria-label="全国各省油价地图"></div>
+        </div>
+        <div class="map-legend">
+          <span class="legend-end">低于均价</span>
+          <span class="legend-bar"></span>
+          <span class="legend-end">高于均价</span>
+          <span class="legend-tick" id="legendMin">—</span>
+          <span class="legend-tick" style="margin-left:-6px">→</span>
+          <span class="legend-tick" id="legendMax">—</span>
+          <span class="legend-avg" id="legendAvg">均价 —</span>
+          <span class="spacer"></span>
+          <span class="hint">单位：元/升 · 数据为省级挂牌价</span>
+        </div>
+      </div>
+
+      <aside class="rank-card">
+        <div class="rank-head"><span id="rankHighTitle">92# 价格高地</span><span>TOP 5</span></div>
+        <ol class="rank-list" id="rankHigh"></ol>
+        <div class="rank-head low"><span id="rankLowTitle">92# 价格洼地</span><span>BOTTOM 5</span></div>
+        <ol class="rank-list" id="rankLow"></ol>
+        <p class="rank-note" id="rankNote">—</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="section wrap" id="list">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">All Regions</span>
+        <h2>31 省油价总表</h2>
+        <p class="note">点击表头排序，点击任意一行切换上方油票。价格为当前调价窗口内的省级零售挂牌价，单位为元/升。</p>
+      </div>
+      <div class="table-tools">
+        <label class="filter">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="tableSearch" type="search" placeholder="筛选地区或价区" aria-label="筛选地区">
+        </label>
+        <span class="count" id="tableCount">— 个地区</span>
+      </div>
+    </div>
+    <p class="mobile-note">手机上展示 92# / 95# / 0# 柴油，点按任意地区可查看 98# 与全部价区。</p>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="name" scope="col">地区 <span class="arrow">↕</span></th>
+              <th scope="col">价区</th>
+              <th class="sortable" data-sort="92" scope="col">92# <span class="arrow">↓</span></th>
+              <th class="sortable" data-sort="95" scope="col">95# <span class="arrow">↕</span></th>
+              <th class="sortable" data-sort="98" scope="col">98# <span class="arrow">↕</span></th>
+              <th class="sortable" data-sort="0" scope="col">0# 柴油 <span class="arrow">↕</span></th>
+              <th class="sortable" data-sort="92chg" scope="col">本轮 92# <span class="arrow">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Calculator -->
+  <section class="section wrap" id="calc">
+    <div class="calc-card">
+      <div class="calc-copy">
+        <span class="eyebrow">Fuel Cost</span>
+        <h2>加满一箱，<br>要花多少钱？</h2>
+        <p>按所选地区的当前挂牌价估算。拖动油量，看看本轮调价之后，一箱油多了还是少了。多价区省份按一价区（通常为省会）估算。</p>
+      </div>
+
+      <div class="calc-body">
+        <div class="calc-controls">
+          <div class="field">
+            <label for="calcProvince">地区</label>
+            <div class="select-wrap"><select id="calcProvince"></select></div>
+          </div>
+          <div class="field">
+            <label>油品</label>
+            <div class="fuel-switch" id="calcFuel" role="group" aria-label="计算油品">
+              <button type="button" data-fuel="92" aria-pressed="true">92#</button>
+              <button type="button" data-fuel="95" aria-pressed="false">95#</button>
+              <button type="button" data-fuel="98" aria-pressed="false">98#</button>
+              <button type="button" data-fuel="0" aria-pressed="false">0#</button>
+            </div>
+          </div>
+
+          <div class="field range-field">
+            <label for="calcLiters">加油量</label>
+            <div class="range-row">
+              <input type="range" id="calcLiters" min="10" max="120" step="5" value="50" aria-label="加油量（升）">
+              <output id="calcLitersOut" for="calcLiters">50 L</output>
+            </div>
+          </div>
+        </div>
+
+        <div class="calc-readout">
+          <div>
+            <span class="total" id="calcTotal">¥—</span>
+            <div class="detail" id="calcDetail">—</div>
+          </div>
+          <div class="side">
+            本轮调价影响
+            <b id="calcDelta">—</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap foot-inner">
+    <div>
+      <div class="foot-brand">
+        <span class="brand-mark">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.6c3.4 4.1 6.4 7.4 6.4 11.1a6.4 6.4 0 1 1-12.8 0C5.6 10 8.6 6.7 12 2.6Z" fill="currentColor"/></svg>
+        </span>
+        油镜 OILSCOPE
+      </div>
+      <p style="margin-top:10px;max-width:34em;line-height:1.9">成品油零售价实行省级统一价，部分省份划分价区；河南等推广乙醇汽油的地区以 E92 / E95 报价展示。数据来自公开接口，按发改委调价窗口更新，个别省份源数据未更新时会在油票上标注，实际价格以加油站当日挂牌为准。</p>
+    </div>
+    <div class="foot-links">
+      <a href="https://www.apihz.cn/api/jinrongyoujia.html" target="_blank" rel="noopener noreferrer">数据来源：接口盒子</a>
+      <a href="https://www.ndrc.gov.cn/" target="_blank" rel="noopener noreferrer">调价依据：国家发改委</a>
+      <span id="footDate">快照载入中</span>
+    </div>
+    <div class="foot-meta">
+      <div id="footUpdated">—</div>
+      <div>31 PROVINCES · ALL PRICE ZONES</div>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:24px;text-align:center">这个页面需要启用 JavaScript 才能查看油价数据。</p></noscript>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
